@@ -1,12 +1,16 @@
-# Vite + Deno + Preact + TypeScript
+# md
+
+## About
+
+md is a minimalistic markdown editor.
 
 ## Running
 
-You need to have Deno v2.0.0 or later installed to run this repo.
+You need to have [Deno v2.0.0 or later installed](https://docs.deno.com/runtime/getting_started/installation/).
 
 Start a dev server:
 
-```
+```sh
 $ deno task dev
 ```
 
@@ -14,6 +18,6 @@ $ deno task dev
 
 Build production assets:
 
-```
+```sh
 $ deno task build
 ```

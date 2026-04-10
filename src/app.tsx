@@ -1,33 +1,165 @@
-import './app.css'
-import { useState } from 'preact/hooks'
-import preactLogo from './assets/preact.svg'
+import { computed, effect, signal } from "@preact/signals"
+import { micromark } from "micromark"
+import { gfm, gfmHtml } from "micromark-extension-gfm"
+import "./app.css"
+import { MarkdownEditor } from "./editor.tsx"
+import {
+  buildSearch,
+  ensureDocumentInUrl,
+  readUrlState,
+  type ThemeMode,
+} from "./url-state.ts"
+
+const redirectedSearch = ensureDocumentInUrl(globalThis.location.search)
+
+if (redirectedSearch) {
+  const nextUrl =
+    `${globalThis.location.pathname}${redirectedSearch}${globalThis.location.hash}`
+  globalThis.history.replaceState(globalThis.history.state, "", nextUrl)
+}
+
+const initialState = readUrlState(globalThis.location.search)
+const previewOpen = signal(initialState.preview)
+const theme = signal<ThemeMode>(initialState.theme)
+export const previewText = signal(initialState.doc)
+
+let currentDocument = initialState.doc
+let writeTimer: number | undefined
+
+function syncUrl() {
+  const search = buildSearch({
+    doc: currentDocument,
+    preview: previewOpen.value,
+    theme: theme.value,
+  })
+
+  const nextUrl =
+    `${globalThis.location.pathname}${search}${globalThis.location.hash}`
+
+  globalThis.history.replaceState(globalThis.history.state, "", nextUrl)
+}
+
+function scheduleUrlSync() {
+  globalThis.clearTimeout(writeTimer)
+  writeTimer = globalThis.setTimeout(syncUrl, 300)
+}
+
+function setPreview(nextPreview: boolean) {
+  previewOpen.value = nextPreview
+
+  if (nextPreview) {
+    previewText.value = currentDocument
+  }
+}
+
+function onDocumentChange(nextDocument: string) {
+  currentDocument = nextDocument
+
+  if (previewOpen.value) {
+    previewText.value = nextDocument
+  }
+
+  scheduleUrlSync()
+}
+
+function setTheme(nextTheme: ThemeMode) {
+  theme.value = nextTheme
+}
+
+const copyShareUrl = async () => {
+  const search = buildSearch({
+    doc: currentDocument,
+    preview: previewOpen.value,
+    theme: theme.value,
+  })
+  const nextUrl =
+    `${globalThis.location.origin}${globalThis.location.pathname}${search}${globalThis.location.hash}`
+
+  await globalThis.navigator.clipboard.writeText(nextUrl)
+}
+
+effect(() => {
+  document.documentElement.dataset.theme = theme.value
+  document.documentElement.style.colorScheme = theme.value
+})
+
+effect(() => {
+  previewOpen.value
+  theme.value
+
+  scheduleUrlSync()
+})
+
+const html = computed(() =>
+  micromark(previewText.value, {
+    extensions: [gfm()],
+    htmlExtensions: [gfmHtml()],
+  })
+)
+
+export function PreviewPane() {
+  return (
+    <div
+      class="preview-pane__body"
+      dangerouslySetInnerHTML={{ __html: html.value }}
+    />
+  )
+}
 
 export function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <img src="/vite-deno.svg" alt="Vite with Deno" />
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" class="logo" alt="Vite logo" />
-        </a>
-        <a href="https://preactjs.com" target="_blank">
-          <img src={preactLogo} class="logo preact" alt="Preact logo" />
-        </a>
-      </div>
-      <h1>Vite + Preact</h1>
-      <div class="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/app.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p class="read-the-docs">
-        Click on the Vite and Preact logos to learn more
-      </p>
-    </>
+    <main class="app-shell">
+      <section class="workspace" data-preview={String(previewOpen.value)}>
+        <section class="pane editor-pane">
+          <MarkdownEditor
+            initialValue={initialState.doc}
+            onDocumentChange={onDocumentChange}
+          />
+        </section>
+        {previewOpen.value && (
+          <aside class="pane preview-pane">
+            <PreviewPane source={previewText.value} />
+          </aside>
+        )}
+      </section>
+
+      <nav class="toolbar" aria-label="Editor controls">
+        <div class="toolbar__group">
+          <button
+            type="button"
+            class="toolbar__button"
+            aria-pressed={previewOpen.value}
+            onClick={() => setPreview(!previewOpen.value)}
+          >
+            Preview
+          </button>
+          <button
+            type="button"
+            class="toolbar__button"
+            onClick={copyShareUrl}
+          >
+            Export
+          </button>
+        </div>
+        <div class="toolbar__group">
+          <button
+            type="button"
+            class="toolbar__button"
+            aria-pressed={theme.value === "dark"}
+            onClick={() => setTheme("dark")}
+          >
+            Dark
+          </button>
+          <button
+            type="button"
+            class="toolbar__button"
+            aria-pressed={theme.value === "light"}
+            onClick={() => setTheme("light")}
+          >
+            Light
+          </button>
+        </div>
+      </nav>
+    </main>
   )
 }
