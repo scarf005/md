@@ -187,27 +187,27 @@
 
 .editor-host .cm-md-heading-1,
 .editor-host .cm-md-heading-1 * {
-  font-size: 1.875em;
+  font-size: 1.625rem;
 }
 
 .editor-host .cm-md-heading-2,
 .editor-host .cm-md-heading-2 * {
-  font-size: 1.5em;
+  font-size: 1.375rem;
 }
 
 .editor-host .cm-md-heading-3,
 .editor-host .cm-md-heading-3 * {
-  font-size: 1.25em;
+  font-size: 1.125rem;
 }
 
 .editor-host .cm-md-heading-4,
 .editor-host .cm-md-heading-4 * {
-  font-size: 1.125em;
+  font-size: 1rem;
 }
 
 .editor-host .cm-md-heading-5,
 .editor-host .cm-md-heading-5 * {
-  font-size: 1em;
+  font-size: 0.9375rem;
 }
 
 .editor-host .cm-md-heading-6,
