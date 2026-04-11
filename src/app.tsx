@@ -1,4 +1,4 @@
-import { computed, effect, signal } from "@preact/signals"
+import { effect, signal } from "@preact/signals"
 import "./app.css"
 import { MarkdownEditor } from "./editor.tsx"
 import {
@@ -20,8 +20,13 @@ const initialState = readUrlState(globalThis.location.search)
 const previewOpen = signal(initialState.preview)
 const theme = signal<ThemeMode>(initialState.theme)
 export const previewText = signal(initialState.doc)
-const previewRenderer = signal<((source: string) => string) | null>(null)
+const previewHtml = signal("")
+const previewRenderer = signal<((options: {
+  source: string
+  theme: ThemeMode
+}) => Promise<string>) | null>(null)
 let previewImportPromise: Promise<void> | null = null
+let previewRenderToken = 0
 
 let currentDocument = initialState.doc
 let writeTimer: number | undefined
@@ -108,13 +113,39 @@ effect(() => {
   void loadPreviewRenderer()
 })
 
-const html = computed(() => previewRenderer.value?.(previewText.value) ?? "")
+effect(() => {
+  if (!previewOpen.value) {
+    previewRenderToken += 1
+    previewHtml.value = ""
+    return
+  }
+
+  const renderer = previewRenderer.value
+  const source = previewText.value
+  const activeTheme = theme.value
+
+  if (!renderer) return
+
+  const token = ++previewRenderToken
+
+  void renderer({ source, theme: activeTheme })
+    .then((nextHtml) => {
+      if (token !== previewRenderToken) return
+
+      previewHtml.value = nextHtml
+    })
+    .catch(() => {
+      if (token !== previewRenderToken) return
+
+      previewHtml.value = ""
+    })
+})
 
 export const PreviewPane = () => {
   return (
     <div
       class="preview-pane__body"
-      dangerouslySetInnerHTML={{ __html: html.value }}
+      dangerouslySetInnerHTML={{ __html: previewHtml.value }}
     />
   )
 }
@@ -127,6 +158,7 @@ export const App = () => {
           <MarkdownEditor
             initialValue={initialState.doc}
             onDocumentChange={onDocumentChange}
+            theme={theme.value}
           />
         </section>
         {previewOpen.value && (

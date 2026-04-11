@@ -9,12 +9,9 @@ import {
   markdownKeymap,
   markdownLanguage,
 } from "@codemirror/lang-markdown"
-import {
-  defaultHighlightStyle,
-  syntaxHighlighting,
-  syntaxTree,
-} from "@codemirror/language"
-import { EditorState, RangeSetBuilder } from "@codemirror/state"
+import { languages } from "@codemirror/language-data"
+import { syntaxTree } from "@codemirror/language"
+import { Compartment, EditorState, RangeSetBuilder } from "@codemirror/state"
 import {
   Decoration,
   EditorView,
@@ -23,10 +20,13 @@ import {
   type ViewUpdate,
 } from "@codemirror/view"
 import { useEffect, useRef } from "preact/hooks"
+import { getEditorHighlightExtensions } from "./code-highlight.ts"
+import type { ThemeMode } from "./url-state.ts"
 
 type MarkdownEditorProps = {
   initialValue: string
   onDocumentChange: (value: string) => void
+  theme: ThemeMode
 }
 
 const strongMark = Decoration.mark({ class: "cm-md-strong" })
@@ -54,6 +54,8 @@ const editorTheme = EditorView.theme({
     display: "none",
   },
 })
+
+const editorThemeCompartment = new Compartment()
 
 function resolveFullNodeRange(
   raw: string,
@@ -192,10 +194,11 @@ const markdownDecorations = ViewPlugin.fromClass(MarkdownDecorations, {
 })
 
 export function MarkdownEditor(
-  { initialValue, onDocumentChange }: MarkdownEditorProps,
+  { initialValue, onDocumentChange, theme }: MarkdownEditorProps,
 ) {
   const hostRef = useRef<HTMLDivElement | null>(null)
   const onDocumentChangeRef = useRef(onDocumentChange)
+  const viewRef = useRef<EditorView | null>(null)
 
   onDocumentChangeRef.current = onDocumentChange
 
@@ -210,8 +213,8 @@ export function MarkdownEditor(
         doc: initialValue,
         extensions: [
           history(),
-          markdown({ base: markdownLanguage }),
-          syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+          markdown({ base: markdownLanguage, codeLanguages: languages }),
+          editorThemeCompartment.of(getEditorHighlightExtensions({ theme })),
           keymap.of([
             indentWithTab,
             ...markdownKeymap,
@@ -230,10 +233,23 @@ export function MarkdownEditor(
       }),
     })
 
+    viewRef.current = view
+
     return () => {
+      viewRef.current = null
       view.destroy()
     }
   }, [initialValue])
+
+  useEffect(() => {
+    if (!viewRef.current) return
+
+    viewRef.current.dispatch({
+      effects: editorThemeCompartment.reconfigure(
+        getEditorHighlightExtensions({ theme }),
+      ),
+    })
+  }, [theme])
 
   return <div ref={hostRef} class="editor-host" />
 }
