@@ -45,7 +45,7 @@ export function ensureDocumentInUrl(search: string): string | null {
 
   return buildSearch({
     doc: CHEATSHEET_DOCUMENT,
-    preview: params.get("p") === "1",
+    preview: params.has("p") ? params.get("p") === "1" : true,
     theme: readTheme(params.get("t")),
   })
 }
