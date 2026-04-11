@@ -1,6 +1,4 @@
 import { computed, effect, signal } from "@preact/signals"
-import { micromark } from "micromark"
-import { gfm, gfmHtml } from "micromark-extension-gfm"
 import "./app.css"
 import { MarkdownEditor } from "./editor.tsx"
 import {
@@ -22,6 +20,8 @@ const initialState = readUrlState(globalThis.location.search)
 const previewOpen = signal(initialState.preview)
 const theme = signal<ThemeMode>(initialState.theme)
 export const previewText = signal(initialState.doc)
+const previewRenderer = signal<((source: string) => string) | null>(null)
+let previewImportPromise: Promise<void> | null = null
 
 let currentDocument = initialState.doc
 let writeTimer: number | undefined
@@ -44,11 +44,23 @@ const scheduleUrlSync = () => {
   writeTimer = globalThis.setTimeout(syncUrl, 300)
 }
 
-function setPreview(nextPreview: boolean) {
+const loadPreviewRenderer = () => {
+  if (previewRenderer.value) return Promise.resolve()
+  if (previewImportPromise) return previewImportPromise
+
+  previewImportPromise = import("./preview.ts").then(({ renderMarkdown }) => {
+    previewRenderer.value = renderMarkdown
+  })
+
+  return previewImportPromise
+}
+
+const setPreview = (nextPreview: boolean) => {
   previewOpen.value = nextPreview
 
   if (nextPreview) {
     previewText.value = currentDocument
+    void loadPreviewRenderer()
   }
 }
 
@@ -90,12 +102,13 @@ effect(() => {
   scheduleUrlSync()
 })
 
-const html = computed(() =>
-  micromark(previewText.value, {
-    extensions: [gfm()],
-    htmlExtensions: [gfmHtml()],
-  })
-)
+effect(() => {
+  if (!previewOpen.value) return
+
+  void loadPreviewRenderer()
+})
+
+const html = computed(() => previewRenderer.value?.(previewText.value) ?? "")
 
 export const PreviewPane = () => {
   return (
@@ -118,7 +131,7 @@ export const App = () => {
         </section>
         {previewOpen.value && (
           <aside class="pane preview-pane">
-            <PreviewPane source={previewText.value} />
+            <PreviewPane />
           </aside>
         )}
       </section>
