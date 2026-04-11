@@ -26,7 +26,7 @@ export const previewText = signal(initialState.doc)
 let currentDocument = initialState.doc
 let writeTimer: number | undefined
 
-function syncUrl() {
+const syncUrl = () => {
   const search = buildSearch({
     doc: currentDocument,
     preview: previewOpen.value,
@@ -39,7 +39,7 @@ function syncUrl() {
   globalThis.history.replaceState(globalThis.history.state, "", nextUrl)
 }
 
-function scheduleUrlSync() {
+const scheduleUrlSync = () => {
   globalThis.clearTimeout(writeTimer)
   writeTimer = globalThis.setTimeout(syncUrl, 300)
 }
@@ -52,7 +52,7 @@ function setPreview(nextPreview: boolean) {
   }
 }
 
-function onDocumentChange(nextDocument: string) {
+const onDocumentChange = (nextDocument: string) => {
   currentDocument = nextDocument
 
   if (previewOpen.value) {
@@ -62,7 +62,7 @@ function onDocumentChange(nextDocument: string) {
   scheduleUrlSync()
 }
 
-function setTheme(nextTheme: ThemeMode) {
+const setTheme = (nextTheme: ThemeMode) => {
   theme.value = nextTheme
 }
 
@@ -97,7 +97,7 @@ const html = computed(() =>
   })
 )
 
-export function PreviewPane() {
+export const PreviewPane = () => {
   return (
     <div
       class="preview-pane__body"
@@ -106,7 +106,7 @@ export function PreviewPane() {
   )
 }
 
-export function App() {
+export const App = () => {
   return (
     <main class="app-shell">
       <section class="workspace" data-preview={String(previewOpen.value)}>
