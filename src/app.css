@@ -165,9 +165,19 @@
   color: var(--inline-strong);
 }
 
+.editor-host .cm-md-strong * {
+  color: inherit;
+  font-weight: inherit;
+}
+
 .editor-host .cm-md-emphasis {
   font-style: italic;
   color: var(--inline-emphasis);
+}
+
+.editor-host .cm-md-emphasis * {
+  color: inherit;
+  font-style: inherit;
 }
 
 .editor-host .cm-md-code {
@@ -180,6 +190,10 @@
   line-height: 1.25;
   letter-spacing: -0.01em;
   color: var(--inline-heading);
+}
+
+.editor-host .cm-md-heading * {
+  color: inherit;
 }
 
 .editor-host .cm-md-heading-1 {
