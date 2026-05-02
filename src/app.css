@@ -297,6 +297,15 @@
   margin: 0 0 1rem;
 }
 
+.preview-pane [data-task-list-item="true"] {
+  list-style: none;
+}
+
+.preview-pane input[type="checkbox"] {
+  margin-right: 0.5rem;
+  cursor: pointer;
+}
+
 .preview-pane code {
   font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
 }

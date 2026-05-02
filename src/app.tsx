@@ -7,6 +7,7 @@ import {
   readUrlState,
   type ThemeMode,
 } from "./url-state.ts"
+import { toggleTaskAtIndex } from "./task-list.ts"
 
 const redirectedSearch = ensureDocumentInUrl(globalThis.location.search)
 
@@ -20,11 +21,14 @@ const initialState = readUrlState(globalThis.location.search)
 const previewOpen = signal(initialState.preview)
 const theme = signal<ThemeMode>(initialState.theme)
 export const previewText = signal(initialState.doc)
+const editorExternalValue = signal(initialState.doc)
 const previewHtml = signal("")
-const previewRenderer = signal<((options: {
-  source: string
-  theme: ThemeMode
-}) => Promise<string>) | null>(null)
+const previewRenderer = signal<
+  ((options: {
+    source: string
+    theme: ThemeMode
+  }) => Promise<string>) | null
+>(null)
 let previewImportPromise: Promise<void> | null = null
 let previewRenderToken = 0
 
@@ -69,18 +73,49 @@ const setPreview = (nextPreview: boolean) => {
   }
 }
 
-const onDocumentChange = (nextDocument: string) => {
-  currentDocument = nextDocument
+const applyDocumentChange = (
+  { nextDocument, syncEditor = false }: {
+    nextDocument: string
+    syncEditor?: boolean
+  },
+) => {
+  if (nextDocument === currentDocument) return
 
-  if (previewOpen.value) {
-    previewText.value = nextDocument
+  currentDocument = nextDocument
+  previewText.value = nextDocument
+
+  if (syncEditor) {
+    editorExternalValue.value = nextDocument
   }
 
   scheduleUrlSync()
 }
 
+const onDocumentChange = (nextDocument: string) => {
+  applyDocumentChange({ nextDocument })
+}
+
 const setTheme = (nextTheme: ThemeMode) => {
   theme.value = nextTheme
+}
+
+const onPreviewInput = (event: Event) => {
+  const target = event.target
+
+  if (!(target instanceof HTMLInputElement)) return
+  if (target.type !== "checkbox") return
+
+  const taskIndex = Number(target.dataset.taskIndex)
+
+  if (Number.isNaN(taskIndex)) return
+
+  applyDocumentChange({
+    nextDocument: toggleTaskAtIndex({
+      source: currentDocument,
+      index: taskIndex,
+    }),
+    syncEditor: true,
+  })
 }
 
 const copyShareUrl = async () => {
@@ -145,6 +180,7 @@ export const PreviewPane = () => {
   return (
     <div
       class="preview-pane__body"
+      onInput={onPreviewInput}
       dangerouslySetInnerHTML={{ __html: previewHtml.value }}
     />
   )
@@ -157,6 +193,7 @@ export const App = () => {
         <section class="pane editor-pane">
           <MarkdownEditor
             initialValue={initialState.doc}
+            externalValue={editorExternalValue.value}
             onDocumentChange={onDocumentChange}
             theme={theme.value}
           />

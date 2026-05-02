@@ -25,6 +25,7 @@ import type { ThemeMode } from "./url-state.ts"
 
 type MarkdownEditorProps = {
   initialValue: string
+  externalValue: string
   onDocumentChange: (value: string) => void
   theme: ThemeMode
 }
@@ -194,7 +195,7 @@ const markdownDecorations = ViewPlugin.fromClass(MarkdownDecorations, {
 })
 
 export function MarkdownEditor(
-  { initialValue, onDocumentChange, theme }: MarkdownEditorProps,
+  { initialValue, externalValue, onDocumentChange, theme }: MarkdownEditorProps,
 ) {
   const hostRef = useRef<HTMLDivElement | null>(null)
   const onDocumentChangeRef = useRef(onDocumentChange)
@@ -240,6 +241,24 @@ export function MarkdownEditor(
       view.destroy()
     }
   }, [initialValue])
+
+  useEffect(() => {
+    const view = viewRef.current
+
+    if (!view) return
+
+    const currentValue = view.state.doc.toString()
+
+    if (currentValue === externalValue) return
+
+    view.dispatch({
+      changes: {
+        from: 0,
+        to: view.state.doc.length,
+        insert: externalValue,
+      },
+    })
+  }, [externalValue])
 
   useEffect(() => {
     if (!viewRef.current) return

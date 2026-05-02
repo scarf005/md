@@ -8,6 +8,16 @@ const getCodeLanguageName = (classList: DOMTokenList) =>
     .find((value) => value.startsWith("language-"))
     ?.slice("language-".length) ?? null
 
+const enableTaskListCheckboxes = (doc: Document) => {
+  Array.from(doc.querySelectorAll<HTMLInputElement>("input[type=checkbox]"))
+    .forEach((input, index) => {
+      input.removeAttribute("disabled")
+      input.dataset.taskIndex = String(index)
+      input.parentElement?.setAttribute("data-task-list-item", "true")
+      input.closest("ul, ol")?.setAttribute("data-task-list", "true")
+    })
+}
+
 const highlightCodeBlocks = async (
   { html, theme }: { html: string; theme: ThemeMode },
 ) => {
@@ -30,15 +40,18 @@ const highlightCodeBlocks = async (
     block.innerHTML = highlighted
   }))
 
+  enableTaskListCheckboxes(doc)
+
   return doc.body.innerHTML
 }
 
 export const renderMarkdown = async (
   { source, theme }: { source: string; theme: ThemeMode },
-) => highlightCodeBlocks({
-  html: micromark(source, {
-    extensions: [gfm()],
-    htmlExtensions: [gfmHtml()],
-  }),
-  theme,
-})
+) =>
+  highlightCodeBlocks({
+    html: micromark(source, {
+      extensions: [gfm()],
+      htmlExtensions: [gfmHtml()],
+    }),
+    theme,
+  })
