@@ -33,6 +33,16 @@ Deno.test("toggleTaskAtIndex supports ordered task lists", () => {
   )
 })
 
+Deno.test("toggleTaskAtIndex ignores fenced code task markers", () => {
+  assertEquals(
+    toggleTaskAtIndex({
+      source: "```\n- [ ] code\n```\n\n- [ ] real\n",
+      index: 0,
+    }),
+    "```\n- [ ] code\n```\n\n- [x] real\n",
+  )
+})
+
 Deno.test("toggleTaskAtIndex leaves unknown indexes unchanged", () => {
   const source = "- [ ] first\n"
 

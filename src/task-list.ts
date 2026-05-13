@@ -1,24 +1,40 @@
-const taskMarkerPattern = /^(\s*(?:[-+*]|\d+[.)])\s+\[)( |x|X)(\])/gm
+import { parse, postprocess, preprocess } from "micromark"
+import { gfm } from "micromark-extension-gfm"
+
+type MicromarkTaskEvent = [
+  "enter" | "exit",
+  { type: string; start: { offset: number }; end: { offset: number } },
+  unknown,
+]
+
+const taskValueTypes = new Set([
+  "taskListCheckValueChecked",
+  "taskListCheckValueUnchecked",
+])
+
+const findTaskValueOffsets = (source: string) =>
+  (postprocess(
+    parse({ extensions: [gfm()] }).document().write(
+      preprocess()(source, undefined, true),
+    ),
+  ) as MicromarkTaskEvent[])
+    .filter(([eventType, token]) =>
+      eventType === "enter" && taskValueTypes.has(token.type)
+    )
+    .map(([, token]) => ({ from: token.start.offset, to: token.end.offset }))
 
 export const toggleTaskAtIndex = ({ source, index }: {
   source: string
   index: number
 }) => {
-  const matcher = new RegExp(taskMarkerPattern)
-  let taskIndex = 0
-  let match: RegExpExecArray | null
+  const taskValue = findTaskValueOffsets(source)[index]
 
-  while ((match = matcher.exec(source)) !== null) {
-    if (taskIndex === index) {
-      const nextState = match[2].toLowerCase() === "x" ? " " : "x"
+  if (!taskValue) return source
 
-      return `${source.slice(0, match.index)}${match[1]}${nextState}${
-        match[3]
-      }${source.slice(match.index + match[0].length)}`
-    }
+  const value = source.slice(taskValue.from, taskValue.to)
+  const nextState = value.toLowerCase() === "x" ? " " : "x"
 
-    taskIndex += 1
-  }
-
-  return source
+  return `${source.slice(0, taskValue.from)}${nextState}${
+    source.slice(taskValue.to)
+  }`
 }

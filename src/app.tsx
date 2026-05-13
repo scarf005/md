@@ -7,7 +7,6 @@ import {
   readUrlState,
   type ThemeMode,
 } from "./url-state.ts"
-import { toggleTaskAtIndex } from "./task-list.ts"
 
 const redirectedSearch = ensureDocumentInUrl(globalThis.location.search)
 
@@ -99,7 +98,7 @@ const setTheme = (nextTheme: ThemeMode) => {
   theme.value = nextTheme
 }
 
-const onPreviewInput = (event: Event) => {
+const onPreviewInput = async (event: Event) => {
   const target = event.target
 
   if (!(target instanceof HTMLInputElement)) return
@@ -109,9 +108,14 @@ const onPreviewInput = (event: Event) => {
 
   if (Number.isNaN(taskIndex)) return
 
+  const source = currentDocument
+  const { toggleTaskAtIndex } = await import("./task-list.ts")
+
+  if (source !== currentDocument) return
+
   applyDocumentChange({
     nextDocument: toggleTaskAtIndex({
-      source: currentDocument,
+      source,
       index: taskIndex,
     }),
     syncEditor: true,

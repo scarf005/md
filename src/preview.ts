@@ -9,7 +9,9 @@ const getCodeLanguageName = (classList: DOMTokenList) =>
     ?.slice("language-".length) ?? null
 
 const enableTaskListCheckboxes = (doc: Document) => {
-  Array.from(doc.querySelectorAll<HTMLInputElement>("input[type=checkbox]"))
+  Array.from(doc.querySelectorAll<HTMLInputElement>(
+    "li > input[type=checkbox][disabled]",
+  ))
     .forEach((input, index) => {
       input.removeAttribute("disabled")
       input.dataset.taskIndex = String(index)
